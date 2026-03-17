@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus" # Las metricas promhttp_ si sirven en prometheus
+
+  - job_name: "collector"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["collectorDefinitivo:8888"]
+        labels:
+          service: "collector"
+    metric_relabel_configs:
+      - source_labels: [ __name__ ]
+        regex: "promhttp_.*"
+        action: drop
+
+  - job_name: "loki"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [ "loki:3100" ]
+        labels:
+          service: "loki"
+    metric_relabel_configs:
+      - source_labels: [ __name__ ]
+        regex: "promhttp_.*"
+        action: drop
+
+  - job_name: "tempo"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["tempoDefinitivo:3200"]
+        labels:
+          service: "tempo"
+    metric_relabel_configs:
+      - source_labels: [ __name__ ]
+        regex: "promhttp_.*"
+        action: drop
+
+  - job_name: "ws-mapfre"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:5000"]
+        labels:
+          service: "ws-mapfre"

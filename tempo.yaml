@@ -1,0 +1,36 @@
+stream_over_http_enabled: true
+# custom
+server:
+  http_listen_port: 3200
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+ingester:
+  trace_idle_period: 10s
+  max_block_bytes: 524288000
+  max_block_duration: 30m
+
+compactor:
+  compaction:
+    block_retention: 720h
+    compacted_block_retention: 1h
+
+query_frontend:
+  search:
+    duration_slo: 5s
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /traces
+    wal:
+      path: /etc/tempo/tempo_wal

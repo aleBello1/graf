@@ -1,0 +1,78 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+# custom
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 70
+    spike_limit_percentage: 25
+
+  attributes:
+    actions:
+      # Hint para indicar qué atributos del log serán labels en Loki
+      - key: loki.attribute.labels
+        action: upsert
+        value: environment, endpoint
+
+exporters:
+  otlp:
+    endpoint: tempoDefinitivo:4317
+    tls:
+      insecure: true
+
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 10000
+      storage: file_storage
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+    default_labels_enabled:
+      exporter: false
+      job: true
+
+#  debug:
+#    verbosity: detailed # se agregaba al exporter para debugear
+
+extensions:
+  health_check:
+  file_storage:
+    directory: /var/lib/otelcol
+
+service:
+
+  telemetry:
+    metrics:
+      address: 0.0.0.0:8888
+
+  extensions: [health_check, file_storage]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes, batch]
+      exporters: [loki]
