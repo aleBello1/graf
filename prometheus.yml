@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 15s
-  scrape_timeout: 10s
+  scrape_interval: 10s
+  scrape_timeout: 5s
 
 scrape_configs:
   - job_name: "prometheus"
@@ -42,9 +42,15 @@ scrape_configs:
         regex: "promhttp_.*"
         action: drop
 
-  - job_name: "ws-mapfre"
-    metrics_path: "/actuator/prometheus"
+#  - job_name: "ws-mapfre"
+#    metrics_path: "/actuator/prometheus"
+#    static_configs:
+#      - targets: ["host.docker.internal:5000"]
+#        labels:
+#          service: "ws-mapfre"
+  - job_name: "collector"
+    metrics_path: "/metrics"
     static_configs:
-      - targets: ["host.docker.internal:5000"]
+      - targets: ["collectorDefinitivo:9464"]
         labels:
-          service: "ws-mapfre"
+          service: "collector"

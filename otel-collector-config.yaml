@@ -27,7 +27,7 @@ processors:
 
 exporters:
   otlp:
-    endpoint: tempoDefinitivo:4317
+    endpoint: tempo:4317
     tls:
       insecure: true
 
@@ -50,11 +50,18 @@ exporters:
       exporter: false
       job: true
 
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+    send_timestamps: true
+    metric_expiration: 180m
+    enable_open_metrics: true
+
 #  debug:
 #    verbosity: detailed # se agregaba al exporter para debugear
 
 extensions:
   health_check:
+    endpoint: 0.0.0.0:13133
   file_storage:
     directory: /var/lib/otelcol
 
@@ -76,3 +83,8 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, attributes, batch]
       exporters: [loki]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]

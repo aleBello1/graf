@@ -1,0 +1,122 @@
+
+services:
+
+  grafana:
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - red
+    image: grafana/grafana:12.4.0
+    environment:
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: smtp.gmail.com:587
+      GF_SMTP_USER: mgranados@ahorra.io
+      GF_SMTP_PASSWORD: apasgtdpnxvwlayq
+      GF_SMTP_FROM_ADDRESS: alerts@ahorra.io
+      GF_SMTP_FROM_NAME: "Grafana Alerts"
+      GF_SMTP_SKIP_VERIFY: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/health" ]
+
+  prometheus:
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - red
+    image: prom/prometheus:v3.9.1
+    volumes:
+      - ./prometheus.yml:/prometheus.yml
+      - prometheusData:/prometheus
+    command:
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.wal-compression"
+      - "--storage.tsdb.path=/prometheus"
+      - "--query.max-concurrency=20"
+      - "--storage.tsdb.retention.size=2GB"
+      - "--web.enable-lifecycle"
+      - "--query.timeout=2m"
+    mem_limit: 2g
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/ready" ]
+
+  loki:
+    container_name: loki
+    ports:
+      - "3100:3100"
+    networks:
+      - red
+    image: grafana/loki:2.9.8
+    volumes:
+      - lokiData:/loki
+      - ./local-config.yaml:/etc/loki/local-config.yaml
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/ready" ]
+
+  init-tempo:
+    image: alpine
+    command: sh -c "chmod -R 777 /tempo /wal"
+    volumes:
+      - volTempo:/tempo
+      - volTempoWal:/wal
+    restart: "no"
+
+  tempo:
+    container_name: tempo
+    ports:
+      - "3200:3200"
+    networks:
+      - red
+    image: grafana/tempo:2.7.1
+    volumes:
+      - volTempo:/traces
+      - volTempoWal:/etc/tempo/tempo_wal
+      - ./tempo.yaml:/etc/tempo/tempo.yaml
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    restart: unless-stopped
+    depends_on:
+      - init-tempo
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3200/ready" ]
+
+  init-collector:
+    image: alpine
+    command: sh -c "chmod -R 777 /data"
+    volumes:
+      - volCollector:/data
+    restart: "no"
+
+  collector:
+    container_name: collectorDefinitivo
+    ports:
+      - "4317:4317"
+    networks:
+      - red
+    image: otel/opentelemetry-collector-contrib:0.102.1
+    volumes:
+      - volCollector:/var/lib/otelcol
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    depends_on:
+      - init-collector
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+
+volumes:
+  grafana_data:
+  prometheusData:
+  lokiData:
+  volCollector:
+  volTempo:
+  volTempoWal:
+
+networks:
+  red:
+    name: red
+    driver: bridge
