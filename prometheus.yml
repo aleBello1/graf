@@ -34,7 +34,7 @@ scrape_configs:
   - job_name: "tempo"
     metrics_path: "/metrics"
     static_configs:
-      - targets: ["tempoDefinitivo:3200"]
+      - targets: ["tempo:3200"]
         labels:
           service: "tempo"
     metric_relabel_configs:
@@ -42,15 +42,16 @@ scrape_configs:
         regex: "promhttp_.*"
         action: drop
 
-#  - job_name: "ws-mapfre"
-#    metrics_path: "/actuator/prometheus"
-#    static_configs:
-#      - targets: ["host.docker.internal:5000"]
-#        labels:
-#          service: "ws-mapfre"
-  - job_name: "collector"
+  - job_name: "collector-exporter"
     metrics_path: "/metrics"
     static_configs:
       - targets: ["collectorDefinitivo:9464"]
         labels:
           service: "collector"
+
+  - job_name: "ws-mapfre-dev"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["98.93.78.80:5000"]
+        labels:
+          service: "ws-mapfre-dev"
