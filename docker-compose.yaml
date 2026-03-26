@@ -111,8 +111,9 @@ services:
     restart: unless-stopped
     depends_on:
       - init-collector
-    healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+    # esta imagen es minimalista y por tanto no tiene comandos como wget, curl o similares, entonces
+    # no se puede comprobar su estado de saludo a menos que se cree una imagen personalizada con alguno
+    # de esos comandos.
 
 volumes:
   grafana_data:
